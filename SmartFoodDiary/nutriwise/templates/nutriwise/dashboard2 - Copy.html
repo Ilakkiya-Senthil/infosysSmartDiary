@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Data Dashboard</title>
+
+  <!-- Load Static Files in Django -->
+  {% load static %}
+  <!-- Link to your custom CSS file in the static directory -->
+  <link rel="stylesheet" href="{% static 'nutriwise/Dashboard2.css' %}">
+
+  <!-- Link to Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+  <div class="container">
+    <aside class="sidebar">
+      <!-- Dynamic User Information -->
+      <p class="user-info"><b><i>Signed in : {{ user.username }}</i></b> </p> <!-- Dynamically display the logged-in user's name -->
+      
+      <div class="nav-box">
+        <nav class="nav-menu">
+          <a href="javascript:void(0);" class="nav-item active" onclick="showSection('dashboard')">
+            <i class="fas fa-home"></i> Home
+          </a>
+          <a href="javascript:void(0);" class="nav-item" onclick="showSection('profile')">
+            <i class="fas fa-user-circle"></i> User Profile
+          </a>
+          <a href="javascript:void(0);" class="nav-item">
+            <i class="fas fa-chart-bar"></i> Bar Chart
+          </a>
+          <a href="javascript:void(0);" class="nav-item">
+            <i class="fas fa-chart-line"></i> Line Graph
+          </a>
+          <a href="javascript:void(0);" class="nav-item">
+            <i class="fas fa-chart-pie"></i> Pie Chart
+          </a>
+          <a href="javascript:void(0);" class="nav-item">
+            <i class="fas fa-circle-notch"></i> Donut Chart
+          </a>
+          <a href="javascript:void(0);" class="nav-item">
+            <i class="fas fa-water"></i> Waterfall Chart
+          </a>
+          <a href="http://127.0.0.1:8000/nutriwise/" class="nav-item">
+            <i class="fas fa-arrow-right"></i> Go to Nutriwise
+          </a>
+          <a href="http://127.0.0.1:8000/" class="nav-item">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="dashboard">
+      <div id="dashboard-section" class="content-section active">
+          <h1>Interactive Data Dashboard</h1>
+          <h2>Welcome to the Data Dashboard</h2>
+          <h4>Select a chart type from the sidebar to view different visualizations.</h4>
+      </div>
+
+      <div id="profile-section" class="content-section" style="display: flex; flex-direction: column; align-items: center;">
+        <h1 style="margin-bottom: 10px;">User Profile</h1>
+        <form method="POST" action="{% url 'nutriwise:profile' %}" class="profile-form" style="width: 50%; border: 2px solid #ddd; padding: 20px; border-radius: 10px; background-color: #f9f9f9; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+            {% csrf_token %}
+    
+            <!-- Age Input -->
+            <label for="age">Age:</label>
+            <input type="number" name="age" id="age" placeholder="Enter your age" value="{{ profile.age }}" required
+                   style="margin-bottom: 10px; padding: 8px; width: 100%; border: 1px solid #ccc; border-radius: 5px;">
+            
+            <!-- Gender Input -->
+            <label for="gender">Gender:</label>
+            <select name="gender" id="gender" required
+                    style="margin-bottom: 10px; padding: 8px; width: 100%; border: 1px solid #ccc; border-radius: 5px;">
+                <option value="Male" {% if profile.gender == "Male" %}selected{% endif %}>Male</option>
+                <option value="Female" {% if profile.gender == "Female" %}selected{% endif %}>Female</option>
+            </select>
+    
+            <!-- Height Input -->
+            <label for="height">Height (cm):</label>
+            <input type="number" name="height" id="height" placeholder="Enter your height in cm" value="{{ profile.height }}" required
+                   style="margin-bottom: 10px; padding: 8px; width: 100%; border: 1px solid #ccc; border-radius: 5px;">
+            
+            <!-- Weight Input -->
+            <label for="weight">Weight (kg):</label>
+            <input type="number" name="weight" id="weight" placeholder="Enter your weight in kg" value="{{ profile.weight }}" required
+                   style="margin-bottom: 20px; padding: 8px; width: 100%; border: 1px solid #ccc; border-radius: 5px;">
+            
+            <!-- Save Button -->
+            <button type="submit" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                Save
+            </button>
+    
+            <!-- Progress Bar -->
+            <div id="progress-bar" style="width: 100%; background-color: #ddd; border-radius: 5px; margin-top: 10px;">
+                <div id="progress" style="width: 0%; height: 8px; background-color: #4CAF50; border-radius: 5px;"></div>
+            </div>
+        </form>
+    
+        <!-- Preview Section -->
+        <div id="preview-section" style="margin-top: 20px; width: 50%; text-align: left; padding: 15px; background: #e7f3fe; border: 1px solid #b3d8ff; border-radius: 10px;">
+            <h3>Preview:</h3>
+            <p>Age: <span id="preview-age">-</span></p>
+            <p>Gender: <span id="preview-gender">-</span></p>
+            <p>Height: <span id="preview-height">-</span> cm</p>
+            <p>Weight: <span id="preview-weight">-</span> kg</p>
+        </div>
+      </div>
+      <script>
+        // Real-time Preview Logic
+        const ageInput = document.getElementById("age");
+        const genderInput = document.getElementById("gender");
+        const heightInput = document.getElementById("height");
+        const weightInput = document.getElementById("weight");
+    
+        const previewAge = document.getElementById("preview-age");
+        const previewGender = document.getElementById("preview-gender");
+        const previewHeight = document.getElementById("preview-height");
+        const previewWeight = document.getElementById("preview-weight");
+    
+        const progressBar = document.getElementById("progress");
+    
+        function updateProgress() {
+            let filledFields = 0;
+            if (ageInput.value) filledFields++;
+            if (genderInput.value) filledFields++;
+            if (heightInput.value) filledFields++;
+            if (weightInput.value) filledFields++;
+            
+            const totalFields = 4;
+            const percentage = (filledFields / totalFields) * 100;
+            progressBar.style.width = percentage + "%";
+        }
+    
+        function updatePreview() {
+            previewAge.textContent = ageInput.value || "-";
+            previewGender.textContent = genderInput.value || "-";
+            previewHeight.textContent = heightInput.value || "-";
+            previewWeight.textContent = weightInput.value || "-";
+            updateProgress();
+        }
+    
+        // Event Listeners for Real-time Updates
+        ageInput.addEventListener("input", updatePreview);
+        genderInput.addEventListener("change", updatePreview);
+        heightInput.addEventListener("input", updatePreview);
+        weightInput.addEventListener("input", updatePreview);
+    
+        // Initialize Preview
+        updatePreview();
+      </script>
+    </main>
+  </div>
+
+<!-- JavaScript to toggle sections -->
+<script>
+  function showSection(sectionId) {
+      const sections = document.querySelectorAll('.content-section');
+      sections.forEach(section => section.classList.remove('active'));
+      document.getElementById(`${sectionId}-section`).classList.add('active');
+  }
+</script>
+
+<style>
+  .content-section { display: none; }
+  .content-section.active { display: block; }
+</style>
+</body>
+</html>
